@@ -1,9 +1,9 @@
 # run_basta_scraper.R
 source("scraper.R")
 
-message("🚀 SCRAPER BASTA MEDIA - VERSION PRÉCISE")
+message(" SCRAPER BASTA MEDIA - VERSION PRÉCISE")
 message("=========================================")
-message("📅 Date du scraping: ", format(Sys.Date(), "%Y-%m-%d"))
+message(" Date du scraping: ", format(Sys.Date(), "%Y-%m-%d"))
 
 # Méthode 1: Scraper la section "À la une"
 message("\n1. Extraction de la section 'À la une'...")
@@ -19,19 +19,19 @@ if (nrow(data_une) == 0) {
 final_data <- data_une
 
 if (nrow(final_data) > 0) {
-  message("\n✅ RÉSULTATS TROUVÉS:")
+  message("\n SULTATS TROUVÉS:")
   message("====================")
   
   # Afficher les résultats
   for (i in 1:nrow(final_data)) {
     message("\n", i, ". ", final_data$title[i])
     if (!is.na(final_data$summary[i]) && nchar(final_data$summary[i]) > 0) {
-      message("   📝 ", substr(final_data$summary[i], 1, 100), "...")
+      message("    ", substr(final_data$summary[i], 1, 100), "...")
     } else {
-      message("   📝 [Résumé non disponible]")
+      message("    [Résumé non disponible]")
     }
-    message("   🔗 ", final_data$link[i])
-    message("   📅 ", final_data$date[i])
+    message("    ", final_data$link[i])
+    message("    ", final_data$date[i])
   }
   
   # Export CSV
@@ -44,7 +44,7 @@ if (nrow(final_data) > 0) {
     library(jsonlite, quietly = TRUE)
   }
   write_json(final_data, paste0(format(Sys.Date(), "%Y-%m-%d"),"_basta_une_articles.json"), pretty = TRUE)
-  message("💾 Fichier exporté: 'basta_une_articles.json'")
+  message(paste0("\n Fichier exporté: ",format(Sys.Date(), "%Y-%m-%d"),"_basta_une_articles.json"))
   
   # Statistiques
   message("\n STATISTIQUES:")

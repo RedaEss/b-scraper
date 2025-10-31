@@ -10,17 +10,17 @@ scrape_basta_une <- function() {
   tryCatch({
     page <- read_html(url)
     
-    message("🎯 Ciblage de la section 'À la une'...")
+    message(" Ciblage de la section 'À la une'...")
     
     # Cibler spécifiquement le slider "À la une"
     une_section <- page %>% html_element(".home-une.slider--une.cartouche")
     
     if (is.na(une_section)) {
-      message("❌ Section 'À la une' non trouvée")
+      message(" Section 'À la une' non trouvée")
       return(data.frame(title = character(), summary = character(), link = character(), date = character()))
     }
     
-    message("✅ Section 'À la une' trouvée!")
+    message(" Section 'À la une' trouvée!")
     
     # Extraire les articles de la une
     articles <- une_section %>% html_elements(".resume.resume--md.article.hentry")
@@ -30,7 +30,7 @@ scrape_basta_une <- function() {
       articles <- une_section %>% html_elements(".resume--md, [class*='resume']")
     }
     
-    message("📰 Articles trouvés dans la une: ", length(articles))
+    message(" Articles trouvés dans la une: ", length(articles))
     
     if (length(articles) > 0) {
       results <- map_df(articles, function(article) {
@@ -86,12 +86,12 @@ scrape_basta_une <- function() {
       
       return(results)
     } else {
-      message("❌ Aucun article trouvé dans la section 'À la une'")
+      message(" Aucun article trouvé dans la section 'À la une'")
       return(data.frame(title = character(), summary = character(), link = character(), date = character()))
     }
     
   }, error = function(e) {
-    message("❌ Erreur lors du scraping: ", e$message)
+    message(" Erreur lors du scraping: ", e$message)
     return(data.frame(title = character(), summary = character(), link = character(), date = character()))
   })
 }
@@ -103,7 +103,7 @@ scrape_basta_direct_titles <- function() {
   tryCatch({
     page <- read_html(url)
     
-    message("🔍 Extraction directe des titres 'resume-titre'...")
+    message(" Extraction directe des titres 'resume-titre'...")
     
     # Extraire directement tous les titres avec la classe resume-titre
     titles <- page %>% html_elements(".resume-titre") %>% html_text(trim = TRUE)
@@ -139,15 +139,15 @@ scrape_basta_direct_titles <- function() {
       # Limiter aux 5 premiers (la une)
       results <- head(results, 5)
       
-      message("✅ ", nrow(results), " titres extraits directement")
+      message(" ", nrow(results), " titres extraits directement")
       return(results)
     } else {
-      message("❌ Aucun titre trouvé")
+      message(" Aucun titre trouvé")
       return(data.frame(title = character(), summary = character(), link = character(), date = character()))
     }
     
   }, error = function(e) {
-    message("❌ Erreur: ", e$message)
+    message(" Erreur: ", e$message)
     return(data.frame(title = character(), summary = character(), link = character(), date = character()))
   })
 }
