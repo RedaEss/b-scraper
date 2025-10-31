@@ -1,0 +1,16 @@
+# Fichiers de données
+*.csv
+*.json
+*.xlsx
+
+# Logs
+*.log
+scraping_failed.txt
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+
+# Résultats
+results/
