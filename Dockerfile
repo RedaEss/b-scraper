@@ -9,7 +9,7 @@ RUN apt-get update && \
     libxml2-dev \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /home/scraper
+WORKDIR /app
 
 # Copie et installation des packages
 COPY requirements.R .

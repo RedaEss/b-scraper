@@ -35,7 +35,7 @@ if (nrow(final_data) > 0) {
   }
   
   # Export CSV
-  write.csv(final_data, paste0(format(Sys.Date(), "%Y-%m-%d"),"_basta_une_articles.csv"), row.names = FALSE, fileEncoding = "UTF-8")
+  write.csv(final_data, paste0("/results/",format(Sys.Date(), "%Y-%m-%d"),"_basta_une_articles.csv"), row.names = FALSE, fileEncoding = "UTF-8")
   message( paste0("\n Fichier exporté: ",format(Sys.Date(), "%Y-%m-%d"),"_basta_une_articles.csv"))
   
   # Export JSON pour plus de flexibilité
@@ -43,7 +43,7 @@ if (nrow(final_data) > 0) {
     install.packages("jsonlite", quiet = TRUE)
     library(jsonlite, quietly = TRUE)
   }
-  write_json(final_data, paste0(format(Sys.Date(), "%Y-%m-%d"),"_basta_une_articles.json"), pretty = TRUE)
+  write_json(final_data, paste0("/results/",format(Sys.Date(), "%Y-%m-%d"),"_basta_une_articles.json"), pretty = TRUE)
   message(paste0("\n Fichier exporté: ",format(Sys.Date(), "%Y-%m-%d"),"_basta_une_articles.json"))
   
   # Statistiques
