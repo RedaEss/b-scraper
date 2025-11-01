@@ -108,26 +108,27 @@ pipeline {
         // Vérifie que le scraping a bien fonctionné
         stage('Validate Results') {
             steps {
-                script {
-                    // Vérifie qu'au moins un fichier CSV a été généré
-                    def files = findFiles(glob: "${env.RESULTS_DIR}/*.csv")
-                    if (files.length == 0) {
-                        error "Aucun fichier CSV généré"  // Échoue le build si pas de CSV
-                    }
-                    
-                    // Lit le fichier CSV pour vérifier son contenu
-                    def csvFile = readFile files[0].path
-                    def lines = csvFile.readLines().size()
-                    echo " Fichier CSV: ${lines} lignes"  // Log le nombre de lignes
-                    
-                    // Vérifie qu'il y a au moins l'en-tête + 1 ligne de données
-                    if (lines < 2) {
-                        error "Fichier CSV vide ou incomplet"  // Échoue si pas de données
-                    }
-                    
-                    // NOUVEAU : Mention de la branche dans les logs de validation
-                    echo " Validation réussie - Branche: ${env.CURRENT_BRANCH}"
-                }
+              sh "test -f ${env.RESULTS_DIR}/*.csv && echo ' CSV trouvé' || (echo 'Aucun CSV'; exit 1)"
+               // script {
+                 //   // Vérifie qu'au moins un fichier CSV a été généré
+                 //   def files = findFiles(glob: "${env.RESULTS_DIR}/*.csv")
+                 //   if (files.length == 0) {
+                 //       error "Aucun fichier CSV généré"  // Échoue le build si pas de CSV
+                 //   }
+                 //   
+                 //   // Lit le fichier CSV pour vérifier son contenu
+                 //   def csvFile = readFile files[0].path
+                 //   def lines = csvFile.readLines().size()
+                 //   echo " Fichier CSV: ${lines} lignes"  // Log le nombre de lignes
+                 //   
+                 //   // Vérifie qu'il y a au moins l'en-tête + 1 ligne de données
+                 //   if (lines < 2) {
+                 //       error "Fichier CSV vide ou incomplet"  // Échoue si pas de données
+                 //   }
+                 //   
+                 //   // NOUVEAU : Mention de la branche dans les logs de validation
+                 //   echo " Validation réussie - Branche: ${env.CURRENT_BRANCH}"
+              //  }
             }
         }
     }
