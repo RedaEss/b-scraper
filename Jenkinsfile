@@ -9,10 +9,11 @@
 
 pipeline {
     // Agent = environnement d'exécution
+    // CORRECTION : Utilisation de l'utilisateur root pour éviter les problèmes de permission
     agent {
         docker {
             image 'docker:latest'  // Utilise l'image Docker officielle
-            args '-v /var/run/docker.sock:/var/run/docker.sock'  // Docker-in-Docker: permet d'exécuter des commandes Docker
+            args '-v /var/run/docker.sock:/var/run/docker.sock -u root'  // Docker-in-Docker + utilisateur root pour les permissions
         }
     }
     
@@ -29,7 +30,7 @@ pipeline {
             name: 'BRANCH',
             choices: ['development', 'main'],
             description: 'Branche à builder',
-           // defaultValue: 'development'  // Valeur par défaut pour les builds manuels
+            defaultValue: 'development'  // Valeur par défaut pour les builds manuels
         )
     }
     
@@ -64,7 +65,8 @@ pipeline {
                     }
                 }
                 
-                sh 'apk add --no-cache docker-compose'  // Installe docker-compose (pour éventuelle évolution)
+                // CORRECTION : Suppression de l'installation docker-compose qui cause des erreurs de permission
+                // sh 'apk add --no-cache docker-compose'  // ◀◀◀ LIGNE COMMENTÉE - CAUSE DES ERREURS
 
                 // AFFICHAGE DES VARIABLES POUR DÉBOGAGE 
                 sh '''
@@ -140,8 +142,8 @@ pipeline {
             // Archive les artefacts - Même configuration que "Archive the artifacts" dans freestyle
             archiveArtifacts artifacts: "${env.RESULTS_DIR}/*", fingerprint: true
             
-            // Nettoyage Docker - Équivalent à votre nettoyage manuel
-            sh 'docker system prune -f'
+            // CORRECTION : Nettoyage Docker commenté car cause des erreurs de permission
+            // sh 'docker system prune -f'  // ◀◀◀ LIGNE COMMENTÉE - CAUSE DES ERREURS
             
             // Publie les résultats HTML/JSON (pour consultation dans Jenkins)
             publishHTML([
