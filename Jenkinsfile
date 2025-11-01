@@ -4,6 +4,9 @@
 // 2. Variables Jenkins prédéfinies (automatiques)
 // 3. Variables système (OS/configuration Jenkins)
 
+// NOUVEAU : Paramètres utilisateur pour choisir la branche à builder
+// Cela permet de builder manuellement différentes branches sans changer la configuration Jenkins
+
 pipeline {
     // Agent = environnement d'exécution
     agent {
@@ -20,9 +23,19 @@ pipeline {
         disableConcurrentBuilds()  // Empêche 2 builds en même temps
     }
     
+    // NOUVEAU : Paramètres utilisateur - apparaît quand on clique "Build with Parameters"
+    parameters {
+        choice(
+            name: 'BRANCH',
+            choices: ['development', 'main'],
+            description: 'Branche à builder',
+            defaultValue: 'development'  // Valeur par défaut pour les builds manuels
+        )
+    }
+    
     // Déclencheurs automatiques
     triggers {
-        pollSCM('H/15 * * * *')  // Vérifie Git toutes les 15min 
+        pollSCM('H/15 * * * *')  // Vérifie Git toutes les 15min (pour les builds automatiques)
     }
     
     // Variables d'environnement (équivalent aux variables dans l'interface Jenkins)
@@ -38,7 +51,19 @@ pipeline {
         // Remplace la section "Source Code Management" de l'interface Jenkins
         stage('Checkout & Setup') {
             steps {
-                checkout scm  // Récupère automatiquement le code depuis Git (comme  config SCM dans l'interface jenkins) 'scm' est une variable Jenkins automatique = configuration Git du job
+                checkout scm  // Récupère automatiquement le code depuis Git (comme config SCM dans l'interface jenkins) 'scm' est une variable Jenkins automatique = configuration Git du job
+                
+                // NOUVEAU : Logique de changement de branche si paramètre différent de 'development'
+                script {
+                    // Si l'utilisateur a choisi une branche différente de 'development' via les paramètres
+                    if (params.BRANCH != 'development') {
+                        sh "git checkout ${params.BRANCH}"  // Change vers la branche sélectionnée
+                        echo "✅ Branche changée vers: ${params.BRANCH}"
+                    } else {
+                        echo "✅ Utilisation de la branche development (défaut)"
+                    }
+                }
+                
                 sh 'apk add --no-cache docker-compose'  // Installe docker-compose (pour éventuelle évolution)
 
                 // AFFICHAGE DES VARIABLES POUR DÉBOGAGE 
@@ -49,10 +74,8 @@ pipeline {
                     echo "JOB_NAME: ${JOB_NAME}"
                     echo "BUILD_URL: ${BUILD_URL}"
                     echo "WORKSPACE: ${WORKSPACE}"
+                    echo "BRANCH_PARAM: ${BRANCH}"  // NOUVEAU : Affiche la branche choisie
                 '''
-
-
-
             }
         }
         
@@ -96,12 +119,15 @@ pipeline {
                     // Lit le fichier CSV pour vérifier son contenu
                     def csvFile = readFile files[0].path
                     def lines = csvFile.readLines().size()
-                    echo " Fichier CSV: ${lines} lignes"  // Log le nombre de lignes
+                    echo "📈 Fichier CSV: ${lines} lignes"  // Log le nombre de lignes
                     
                     // Vérifie qu'il y a au moins l'en-tête + 1 ligne de données
                     if (lines < 2) {
                         error "Fichier CSV vide ou incomplet"  // Échoue si pas de données
                     }
+                    
+                    // NOUVEAU : Mention de la branche dans les logs de validation
+                    echo "✅ Validation réussie - Branche: ${params.BRANCH}"
                 }
             }
         }
@@ -130,24 +156,30 @@ pipeline {
         
         // Seulement en cas de SUCCÈS
         success {
-            echo " Pipeline exécuté avec succès !"
-            // SECTION SLACK COMMENTÉE 
+            // NOUVEAU : Inclut la branche dans le message de succès
+            echo "✅ Pipeline exécuté avec succès ! - Branche: ${params.BRANCH}"
+            
+            // SECTION SLACK COMMENTÉE - POUR USAGE FUTUR
+            // Décommentez ces lignes quand vous configurerez Slack
             /*
             slackSend(
                 channel: '#jenkins',
-                message: " ${env.JOB_NAME} - SUCCÈS\n${env.BUILD_URL}"
+                message: "✅ ${env.JOB_NAME} - SUCCÈS - Branche: ${params.BRANCH}\n${env.BUILD_URL}"
             )
             */
         }
         
         // Seulement en cas d'ÉCHEC
         failure {
-            echo " Pipeline a échoué"
-            // SECTION SLACK COMMENTÉE 
+            // NOUVEAU : Inclut la branche dans le message d'échec
+            echo "❌ Pipeline a échoué - Branche: ${params.BRANCH}"
+            
+            // SECTION SLACK COMMENTÉE - POUR USAGE FUTUR
+            // Décommentez ces lignes quand vous configurerez Slack
             /*
             slackSend(
                 channel: '#jenkins',
-                message: " ${env.JOB_NAME} - ÉCHEC\n${env.BUILD_URL}"
+                message: "❌ ${env.JOB_NAME} - ÉCHEC - Branche: ${params.BRANCH}\n${env.BUILD_URL}"
             )
             */
         }
