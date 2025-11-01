@@ -29,8 +29,8 @@ pipeline {
         choice(
             name: 'BRANCH',
             choices: ['development', 'main'],
-            description: 'Branche à builder',
-            defaultValue: 'development'  // Valeur par défaut pour les builds manuels
+            description: 'Branche à builder'//,
+            //defaultValue: 'development'  // Valeur par défaut pour les builds manuels
         )
     }
     
