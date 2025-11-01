@@ -30,7 +30,7 @@ pipeline {
             name: 'BRANCH',
             choices: ['development', 'main'],
             description: 'Branche à builder',
-          //  defaultValue: 'development'  // Valeur par défaut pour les builds manuels
+            defaultValue: 'development'  // Valeur par défaut pour les builds manuels
         )
     }
     
@@ -44,6 +44,8 @@ pipeline {
         DOCKER_IMAGE = 'basta-scraper-r'  // Nom de l'image Docker - Remplace "docker build -t basta-scraper-r ."
         RESULTS_DIR = 'jenkins-results'   // Dossier des résultats - Remplace "mkdir -p jenkins-results"
         DOCKER_BUILDKIT = '1'             // Active BuildKit pour des builds plus rapides
+        // CORRECTION : Stocke le paramètre BRANCH dans une variable d'environnement
+        CURRENT_BRANCH = "${params.BRANCH ?: 'development'}"
     }
     
     // Étapes du pipeline 
@@ -59,16 +61,14 @@ pipeline {
                     // Si l'utilisateur a choisi une branche différente de 'development' via les paramètres
                     if (params.BRANCH != 'development') {
                         sh "git checkout ${params.BRANCH}"  // Change vers la branche sélectionnée
-                        echo "✅ Branche changée vers: ${params.BRANCH}"
+                        echo " Branche changée vers: ${params.BRANCH}"
                     } else {
-                        echo "✅ Utilisation de la branche development (défaut)"
+                        echo " Utilisation de la branche development (défaut)"
                     }
                 }
-                
-                // CORRECTION : Suppression de l'installation docker-compose qui cause des erreurs de permission
-                // sh 'apk add --no-cache docker-compose'  // ◀◀◀ LIGNE COMMENTÉE - CAUSE DES ERREURS
 
                 // AFFICHAGE DES VARIABLES POUR DÉBOGAGE 
+                // CORRECTION : Utilisation de env.CURRENT_BRANCH au lieu de params.BRANCH dans le shell
                 sh '''
                     echo "=== VARIABLES DISPONIBLES ==="
                     echo "DOCKER_IMAGE: ${DOCKER_IMAGE}"
@@ -76,7 +76,7 @@ pipeline {
                     echo "JOB_NAME: ${JOB_NAME}"
                     echo "BUILD_URL: ${BUILD_URL}"
                     echo "WORKSPACE: ${WORKSPACE}"
-                    echo "BRANCH_PARAM: ${BRANCH}"  // NOUVEAU : Affiche la branche choisie
+                    echo "CURRENT_BRANCH: ${CURRENT_BRANCH}"  # CORRECTION : Variable d'environnement
                 '''
             }
         }
@@ -85,11 +85,8 @@ pipeline {
         // Remplace l'étape "Execute shell" avec "docker build -t simple-web-scraper ."
         stage('Build Image') {
             steps {
-                sh """
-                    docker build \\
-                    --build-arg BUILDKIT_INLINE_CACHE=1 \\  # Optimisation du cache
-                    -t ${env.DOCKER_IMAGE} .  # Même commande que l'interface - freestyle project - mais avec variable
-                """
+                // CORRECTION : Commande docker build simplifiée et corrigée
+                sh "docker build --build-arg BUILDKIT_INLINE_CACHE=1 -t ${env.DOCKER_IMAGE} ."
             }
         }
         
@@ -100,8 +97,8 @@ pipeline {
             steps {
                 sh """
                     mkdir -p ${env.RESULTS_DIR}  # Crée le dossier de résultats (comme dans freestyle)
-                    docker run --rm \\  # Exécute et supprime le conteneur après
-                      -v \$(pwd)/${env.RESULTS_DIR}:/results \\  # Monte le dossier résultats
+                    docker run --rm \
+                      -v \$(pwd)/${env.RESULTS_DIR}:/results \
                       ${env.DOCKER_IMAGE}  # Même image que celle buildée
                 """
             }
@@ -121,7 +118,7 @@ pipeline {
                     // Lit le fichier CSV pour vérifier son contenu
                     def csvFile = readFile files[0].path
                     def lines = csvFile.readLines().size()
-                    echo "📈 Fichier CSV: ${lines} lignes"  // Log le nombre de lignes
+                    echo " Fichier CSV: ${lines} lignes"  // Log le nombre de lignes
                     
                     // Vérifie qu'il y a au moins l'en-tête + 1 ligne de données
                     if (lines < 2) {
@@ -129,7 +126,7 @@ pipeline {
                     }
                     
                     // NOUVEAU : Mention de la branche dans les logs de validation
-                    echo "✅ Validation réussie - Branche: ${params.BRANCH}"
+                    echo " Validation réussie - Branche: ${env.CURRENT_BRANCH}"
                 }
             }
         }
@@ -142,31 +139,34 @@ pipeline {
             // Archive les artefacts - Même configuration que "Archive the artifacts" dans freestyle
             archiveArtifacts artifacts: "${env.RESULTS_DIR}/*", fingerprint: true
             
-            // CORRECTION : Nettoyage Docker commenté car cause des erreurs de permission
-            // sh 'docker system prune -f'  // ◀◀◀ LIGNE COMMENTÉE - CAUSE DES ERREURS
-            
-            // Publie les résultats HTML/JSON (pour consultation dans Jenkins)
-            publishHTML([
-                allowMissing: false,
-                alwaysLinkToLastBuild: true,
-                keepAll: true,
-                reportDir: env.RESULTS_DIR,
-                reportFiles: '*.html,*.json',
-                reportName: 'Rapports Scraping'
-            ])
+            // CORRECTION : Publication HTML conditionnelle - seulement si le dossier existe
+            script {
+                if (fileExists(env.RESULTS_DIR)) {
+                    publishHTML([
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: env.RESULTS_DIR,
+                        reportFiles: '*.html,*.json',
+                        reportName: 'Rapports Scraping'
+                    ])
+                } else {
+                    echo " Le dossier ${env.RESULTS_DIR} n'existe pas - skip de la publication HTML"
+                }
+            }
         }
         
         // Seulement en cas de SUCCÈS
         success {
             // NOUVEAU : Inclut la branche dans le message de succès
-            echo "✅ Pipeline exécuté avec succès ! - Branche: ${params.BRANCH}"
+            echo " Pipeline exécuté avec succès ! - Branche: ${env.CURRENT_BRANCH}"
             
             // SECTION SLACK COMMENTÉE - POUR USAGE FUTUR
             // Décommentez ces lignes quand vous configurerez Slack
             /*
             slackSend(
                 channel: '#jenkins',
-                message: "✅ ${env.JOB_NAME} - SUCCÈS - Branche: ${params.BRANCH}\n${env.BUILD_URL}"
+                message: " ${env.JOB_NAME} - SUCCÈS - Branche: ${env.CURRENT_BRANCH}\n${env.BUILD_URL}"
             )
             */
         }
@@ -174,14 +174,14 @@ pipeline {
         // Seulement en cas d'ÉCHEC
         failure {
             // NOUVEAU : Inclut la branche dans le message d'échec
-            echo "❌ Pipeline a échoué - Branche: ${params.BRANCH}"
+            echo " Pipeline a échoué - Branche: ${env.CURRENT_BRANCH}"
             
             // SECTION SLACK COMMENTÉE - POUR USAGE FUTUR
             // Décommentez ces lignes quand vous configurerez Slack
             /*
             slackSend(
                 channel: '#jenkins',
-                message: "❌ ${env.JOB_NAME} - ÉCHEC - Branche: ${params.BRANCH}\n${env.BUILD_URL}"
+                message: " ${env.JOB_NAME} - ÉCHEC - Branche: ${env.CURRENT_BRANCH}\n${env.BUILD_URL}"
             )
             */
         }
