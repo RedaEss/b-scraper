@@ -1,5 +1,6 @@
 # Dockerfile
-FROM rocker/r-ver:4.3.1
+#FROM rocker/r-ver:4.3.1
+FROM rocker/r-ver:4.3.1-slim
 
 # Installation des dépendances système
 RUN apt-get update && \
